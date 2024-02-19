@@ -2,7 +2,9 @@ import { eq } from 'drizzle-orm';
 import db from '../db';
 import { users, type UserAttributes, type UserSchema } from '../schema/auth';
 import { context } from './+context';
-import type { User } from 'lucia';
+import { generateId, type User } from 'lucia';
+import { userlogs } from '../schema/users';
+import { UNIQID_LENGTH } from '$lib/constant.config';
 
 export function getUserAttributes(attributes: UserAttributes) {
 	return {
@@ -40,3 +42,18 @@ export const getUserData = context.procedure(async ({ $log, $error, $ok }, useri
 		attributes: getUserAttributes(data)
 	});
 });
+
+export const createUserLog = context.procedure(
+	async ({ $log }, userid: string, tags: string[], log: string) => {
+		const id = generateId(UNIQID_LENGTH);
+		const userlog = {
+			id,
+			userid,
+			tags,
+			text: log
+		};
+
+		await db.insert(userlogs).values(userlog);
+		$log('create userlog', userlog);
+	}
+);

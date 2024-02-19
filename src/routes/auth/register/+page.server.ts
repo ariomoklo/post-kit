@@ -5,7 +5,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { generateEmailVerificationToken, register } from '$lib/server/database/function/auth';
 import { sendEmailVerification } from '$lib/server/mailer/function';
-import { normalizeUserDB } from '$lib/server/database/function/users';
+import { createUserLog, normalizeUserDB } from '$lib/server/database/function/users';
 import { devlog } from '$lib/function/debug';
 import { BASEURL } from '$lib/constant.config';
 
@@ -43,10 +43,20 @@ export const actions = {
 
 		// parse user database format to lucia auth user format
 		const user = normalizeUserDB(result.user);
+		createUserLog.run(
+			user.id,
+			['event', 'register'],
+			`${user.username}: ${user.fullname}(${user.email}). Registered Event Log.`
+		);
 
 		// generate email verification token then send email to user email.
 		const token = await generateEmailVerificationToken.run(result.user.id, result.user.email);
 		sendEmailVerification(user, `${BASEURL}/auth/validate-email/${token}`);
+		createUserLog.run(
+			user.id,
+			['event', 'email', 'verification'],
+			`${user.username}: ${user.fullname}(${user.email}). Verification email has been sent.`
+		);
 
 		// redirect user on successful register action
 		return redirect(307, '/auth/signin');

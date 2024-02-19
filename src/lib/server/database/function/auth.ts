@@ -19,7 +19,10 @@ import { TOTPController, createTOTPKeyURI } from 'oslo/otp';
 import { decodeHex, encodeHex } from 'oslo/encoding';
 import { getRandomValues } from 'node:crypto';
 
-type UserAttribute = Omit<UserSchema, 'id' | 'password' | 'isEmailVerified'>;
+type UserAttribute = Omit<
+	UserSchema,
+	'id' | 'password' | 'isEmailVerified' | 'lastSignIn' | 'registeredDate'
+>;
 type AuthData = { session: Session; cookie: Cookie; user: UserSchema };
 type ReturnAuth = FunctionReturn<AuthData>;
 
@@ -37,7 +40,9 @@ export const register = context.procedure(
 			twoFactorSecret: null,
 			isEmailVerified: false,
 			username: data.username,
-			fullname: data.fullname !== '' ? data.fullname : data.username
+			fullname: data.fullname !== '' ? data.fullname : data.username,
+			lastSignIn: new Date(),
+			registeredDate: new Date()
 		};
 
 		try {
