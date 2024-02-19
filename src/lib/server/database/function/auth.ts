@@ -116,7 +116,7 @@ export const signin = context.procedure(
 		const valid = await new Argon2id().verify(user.password, password);
 		if (!valid) return $error('signin', 'Invalid credentials');
 
-		const session = await lucia.createSession(user.id, user);
+		const session = await lucia.createSession(user.id, {});
 		const cookie = lucia.createSessionCookie(session.id);
 
 		return $ok({ session, cookie, user });

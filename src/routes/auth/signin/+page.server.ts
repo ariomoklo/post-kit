@@ -5,13 +5,17 @@ import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { fail, redirect } from '@sveltejs/kit';
 import { signin } from '$lib/server/database/function/auth';
+import { usePageAuth } from '$lib/server/auth';
 
 const schema = z.object({
 	identity: z.string().min(5),
 	password: z.string().min(PASSWORD_MIN_LENGTH)
 });
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+	// redirect on authenticated user
+	usePageAuth(locals).onAuth(true).redirect(307, '/');
+
 	const form = await superValidate(zod(schema));
 	return { form };
 };
