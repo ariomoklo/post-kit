@@ -1,6 +1,5 @@
 import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
-import { z } from 'zod';
 
 export const users = pgTable('users', {
 	id: text('id').primaryKey(),
@@ -9,7 +8,15 @@ export const users = pgTable('users', {
 	password: text('password').notNull(),
 	fullname: text('fullname').notNull(),
 	isEmailVerified: boolean('email_verified').notNull().default(false),
-	twoFactorSecret: text('two_factor_secret')
+	twoFactorSecret: text('two_factor_secret'),
+	registeredDate: timestamp('last_sign_in', {
+		withTimezone: true,
+		mode: 'date'
+	}).defaultNow(),
+	lastSignIn: timestamp('last_sign_in', {
+		withTimezone: true,
+		mode: 'date'
+	}).defaultNow()
 });
 export type UserSchema = typeof users.$inferSelect;
 export type UserAttributes = Omit<UserSchema, 'id' | 'password'>;
