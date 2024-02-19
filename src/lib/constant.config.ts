@@ -18,3 +18,6 @@ export const UNIQID_LENGTH = 50;
 
 /** global value for application name  */
 export const APPLICATION_NAME = 'post-kit';
+
+/** base url used on every part of application */
+export const BASEURL = 'http://localhost:5173';

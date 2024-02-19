@@ -3,7 +3,13 @@ import { isPasswordValid } from '$lib/function/password';
 import { isUsernameValid } from '$lib/function/identity';
 import { Cookie, generateId, type Session } from 'lucia';
 import { Argon2id } from 'oslo/password';
-import { emailTokens, passwordResetTokens, users, type UserSchema } from '../schema/auth';
+import {
+	emailTokens,
+	passwordResetTokens,
+	users,
+	type InsertUserSchema,
+	type UserSchema
+} from '../schema/auth';
 import db from '../db';
 import { lucia } from '$lib/server/auth';
 import { and, eq, or } from 'drizzle-orm';
@@ -14,20 +20,21 @@ import { decodeHex, encodeHex } from 'oslo/encoding';
 import { getRandomValues } from 'node:crypto';
 
 type UserAttribute = Omit<UserSchema, 'id' | 'password' | 'isEmailVerified'>;
-type AuthData = { session: Session; cookie: Cookie };
+type AuthData = { session: Session; cookie: Cookie; user: UserSchema };
 type ReturnAuth = FunctionReturn<AuthData>;
 
 export const register = context.procedure(
-	async ({ $ok, $error }, data: UserAttribute, password: string): Promise<ReturnAuth> => {
+	async ({ $ok, $error, $log }, data: UserAttribute, password: string): Promise<ReturnAuth> => {
 		if (!isUsernameValid(data.username)) return $error('username', 'Username is not valid');
 		if (!isPasswordValid(password)) return $error('password', 'Password is not valid');
 
 		const id = generateId(USERID_LENGTH);
 		const hashed = await new Argon2id().hash(password);
-		const userdata = {
+		const userdata: UserSchema = {
 			id,
 			password: hashed,
 			email: data.email,
+			twoFactorSecret: null,
 			isEmailVerified: false,
 			username: data.username,
 			fullname: data.fullname !== '' ? data.fullname : data.username
@@ -36,11 +43,12 @@ export const register = context.procedure(
 		try {
 			await db.insert(users).values(userdata);
 
-			const session = await lucia.createSession(id, userdata);
+			const session = await lucia.createSession(id, {});
 			const cookie = lucia.createSessionCookie(session.id);
 
-			return $ok({ session, cookie });
+			return $ok({ session, cookie, user: userdata });
 		} catch (error) {
+			$log('register error', error);
 			return $error('identity', 'Email or username is already used.');
 		}
 	}
@@ -111,7 +119,7 @@ export const signin = context.procedure(
 		const session = await lucia.createSession(user.id, user);
 		const cookie = lucia.createSessionCookie(session.id);
 
-		return $ok({ session, cookie });
+		return $ok({ session, cookie, user });
 	}
 );
 
